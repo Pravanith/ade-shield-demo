@@ -131,21 +131,21 @@ if menu == "Live Dashboard":
         st.markdown("---")
 
         # 1. Critical Patient (Selected) - Changed to a generalized high risk
-        st.markdown('<div style="background-color:#ffe6e6; padding:10px; border-radius:5px;">'
+        st.markdown('<div style="background-color:#B30000; color:white; padding:10px; border-radius:5px;">'
                     '**Patient A** (Room 302)<br>'
                     '🔴 **Risk: 95% (CRITICAL)**<br>'
                     '*Issue: Bleeding Risk*</div>',
                     unsafe_allow_html=True)
 
         # 2. High Risk Patient (Hypoglycemia)
-        st.markdown('<div style="background-color:#fff0e6; padding:10px; border-radius:5px;">'
+        st.markdown('<div style="background-color:#FF8C00; color:black; padding:10px; border-radius:5px;">'
                     '**Patient B** (Room 410)<br>'
                     '🟠 **Risk: 75% (HIGH)**<br>'
                     '*Issue: Hypoglycemia Risk*</div>',
                     unsafe_allow_html=True)
 
         # 3. Low Risk Patient
-        st.markdown('**Patient C** (Room 105)<br>'
+        st.markdown('st.markdown('<div style="background-color:#D0F0C0; padding:10px; border-radius:5px; color:black;">' + '**Patient C** (Room 105)<br>'
                     '🟢 **Risk: 22% (LOW)**<br>'
                     '*Issue: Stable / Monitoring*',
                     unsafe_allow_html=True)
