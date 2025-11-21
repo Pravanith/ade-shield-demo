@@ -73,16 +73,12 @@ def chatbot_response(text):
         "warfarin": "Warfarin interacts with several medications and increases bleeding risk.",
         "amiodarone": "Amiodarone can elevate INR when combined with Warfarin.",
         "aki": "Acute Kidney Injury risk is elevated by certain blood pressure medications (ACEi/ARBs) and diuretics.",
-        
-        # --- New Medication Classes (The Final Layer) ---
         "metformin": "Metformin is a first-line diabetes drug but is strictly avoided in severe kidney impairment.",
         "acei": "ACE inhibitors are critical for hypertension but increase the risk of AKI, especially when combined with diuretics.",
         "doac": "Direct Oral Anticoagulants (like Apixaban) are used for clotting, but their dose must be adjusted for impaired renal function.",
         "statin": "Statins are used for cardiovascular risk reduction, but monitoring is required for severe muscle pain (myopathy).",
         "diuretic": "Diuretics are used for fluid retention but increase the risk of dehydration and electrolyte imbalances (like low potassium).",
         "sulfonylurea": "Sulfonylureas stimulate insulin release and have a high risk of causing severe hypoglycemia.",
-        
-        # --- Chronic Diseases/Conditions ---
         "diabetes": "Diabetes requires strict blood sugar monitoring; poor control (high HbA1c) increases hypoglycemia risk.",
         "hypertension": "Uncontrolled hypertension increases cardiovascular risk and stresses kidney function.",
         "cancer": "Active chemotherapy treatment increases the risk of AKI and immune suppression.",
