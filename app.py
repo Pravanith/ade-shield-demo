@@ -6,8 +6,8 @@ import altair as alt
 # CORE MODELING LOGIC (CLINICAL DETAIL + DEMOGRAPHICS)
 # -----------------------------
 
-def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplatelet_use, gender, weight, smoking, alcohol_use, antibiotic_order, dietary_change, liver_disease):
-    """Predicts bleeding risk, factoring in underlying conditions, demographics, and acute changes."""
+def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplatelet_use, gender, weight, smoking, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke):
+    """Predicts bleeding risk, factoring in underlying conditions and patient demographics."""
     score = 0
     # Acute / Drug Factors
     score += 35 if anticoagulant else 0
@@ -15,11 +15,11 @@ def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplat
     score += 30 if gi_bleed else 0
     score += 15 if antiplatelet_use else 0
     
-    # NEW ACUTE/LIFESTYLE FACTORS
-    score += 25 if antibiotic_order else 0 # High score due to sudden, massive INR spike potential
-    score += 15 if alcohol_use else 0     # Affects liver metabolism and INR stability
-    score += 20 if liver_disease else 0   # Liver disease impairs clotting factor production
-    score += 10 if dietary_change else 0  # Diet change makes INR volatile
+    # New Acute/Lifestyle Factors
+    score += 25 if antibiotic_order else 0 
+    score += 15 if alcohol_use else 0     
+    score += 20 if liver_disease else 0   
+    score += 10 if dietary_change else 0  
     
     # Chronic / Management / Demographics Factors
     score += 10 if age > 70 else 0
@@ -27,32 +27,58 @@ def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplat
     score += 10 if smoking else 0
     score += 5 if gender == 'Female' else 0
     score += 15 if weight > 120 or weight < 50 else 0
+    score += 15 if prior_stroke else 0 
     
     return min(score, 100)
 
-def calculate_hypoglycemia_risk(insulin_use, renal_status, high_hba1c, neuropathy_history, gender, weight):
-    """Predicts low blood sugar risk, factoring in diabetes control status and weight."""
+def calculate_hypoglycemia_risk(insulin_use, renal_status, high_hba1c, neuropathy_history, gender, weight, recent_dka):
+    """Predicts low blood sugar risk, factoring in diabetes control status and severe events."""
     score = 0
+    # Acute / Drug Factors
     score += 30 if insulin_use else 0
     score += 45 if renal_status else 0
+    
+    # Chronic / Management / Demographics Factors
     score += 20 if high_hba1c else 0
     score += 10 if neuropathy_history else 0
     score += 10 if weight < 60 else 0
+    score += 20 if recent_dka else 0 
+    
     return min(score, 100)
 
-def calculate_aki_risk(age, diuretic_use, acei_arb_use, high_bp, active_chemo, gender, weight, race):
-    """Predicts Acute Kidney Injury (AKI) risk from drug classes and co-existing conditions, including race."""
+def calculate_aki_risk(age, diuretic_use, acei_arb_use, high_bp, active_chemo, gender, weight, race, baseline_creat, contrast_exposure):
+    """Predicts Acute Kidney Injury (AKI) risk from drug classes and co-existing conditions, including acute events."""
     score = 0
+    # Acute / Drug Factors
     score += 30 if diuretic_use else 0
     score += 40 if acei_arb_use else 0
+    score += 25 if contrast_exposure else 0 
+    
+    # Chronic / Management / Demographics Factors
     score += 20 if age > 75 else 0
     score += 10 if high_bp else 0
     score += 20 if active_chemo else 0
     score += 15 if race == 'Non-Hispanic Black' else 0
+    score += 30 if baseline_creat > 1.5 else 0 
+    
     return min(score, 100)
 
+# NEW: Comorbidity Load Function
+def calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_disease, smoking, high_bp):
+    """Calculates a composite score representing the patient's overall disease burden and clinical fragility."""
+    load = 0
+    load += 25 if prior_stroke else 0
+    load += 30 if active_chemo else 0
+    load += 20 if recent_dka else 0
+    load += 15 if liver_disease else 0
+    load += 10 if smoking else 0
+    load += 10 if high_bp else 0
+    
+    return min(load, 100)
+
+
 # -----------------------------
-# SIMPLE CHATBOT
+# SIMPLE CHATBOT (UNMODIFIED)
 # -----------------------------
 def chatbot_response(text):
     text = text.lower()
@@ -104,11 +130,10 @@ def check_interaction(drug1, drug2):
 # Page Setup & Navigation
 # -----------------------------
 st.set_page_config(page_title="ADE Shield", layout="wide")
-st.title("Clinical Risk Monitor") # Using the new, shorter title
+st.title("Clinical Risk Monitor")
 
-# Use st.radio for streamlined selection in the sidebar
 with st.sidebar:
-    st.title("Risk Monitor Menu") # Using the new sidebar title
+    st.title("Risk Monitor Menu")
     menu = st.radio(
         "Select Application View",
         ["Live Dashboard", "Risk Calculator", "CSV Upload", "Medication Checker", "Chatbot"],
@@ -116,16 +141,18 @@ with st.sidebar:
     )
 
 # ---------------------------------------------------
-# PAGE 0 – LIVE DASHBOARD (GENERALIZED VIEW - UNMODIFIED)
+# PAGE 0 – LIVE DASHBOARD (The Split Screen View)
 # ---------------------------------------------------
 if menu == "Live Dashboard":
     
     st.subheader("General Patient Risk Overview")
 
-    col_metrics = st.columns(3)
+    # Metrics Display (Now showing 4 metrics for completeness, though only 3 are ADEs)
+    col_metrics = st.columns(4)
     col_metrics[0].metric("Bleeding Risk", "60%", "MED")
-    col_metrics[1].metric("Hypoglycemia Risk (High Alert)", "92%", "CRITICAL")
-    col_metrics[2].metric("AKI Risk (High Alert)", "80%", "HIGH")
+    col_metrics[1].metric("Hypoglycemia Risk", "92%", "CRITICAL")
+    col_metrics[2].metric("AKI Risk (Renal)", "80%", "HIGH")
+    col_metrics[3].metric("Comorbidity Load", "75%", "HIGH") # New Metric Added Here
 
     st.markdown("---")
     
@@ -136,21 +163,21 @@ if menu == "Live Dashboard":
         st.subheader("⚠️ Patient Queue")
         st.markdown("---")
         
-        # 1. Critical Patient (Hypoglycemia is now the top focus)
+        # 1. Critical Patient 
         st.markdown('<div style="background-color:#B30000; color:white; padding:10px; border-radius:5px;">'
                     '**Patient A** (Room 302)<br>'
                     '🔴 **Risk: 92% (CRITICAL)**<br>'
                     '*Issue: Hypoglycemia Risk*</div>', 
                     unsafe_allow_html=True)
         
-        # 2. High Risk Patient (AKI is now the second focus)
+        # 2. High Risk Patient
         st.markdown('<div style="background-color:#FF8C00; color:black; padding:10px; border-radius:5px;">'
                     '**Patient B** (Room 410)<br>'
                     '🟠 **Risk: 80% (HIGH)**<br>'
                     '*Issue: AKI Risk*</div>', 
                     unsafe_allow_html=True)
         
-        # 3. Medium Risk Patient (Bleeding)
+        # 3. Medium Risk Patient
         st.markdown('<div style="background-color:#A8D08D; color:black; padding:10px; border-radius:5px;">'
                     '**Patient C** (Room 105)<br>'
                     '🟡 **Risk: 60% (MED)**<br>'
@@ -244,14 +271,14 @@ elif menu == "Risk Calculator":
     demo_col1, demo_col2, demo_col3 = st.columns(3)
     age_calc = demo_col1.number_input("Age", 18, 100, 78)
     gender_calc = demo_col1.selectbox("Gender", ['Male', 'Female'], index=1)
-    race_calc = demo_col1.selectbox("Race/Ethnicity", ['Non-Hispanic Black', 'Other'], index=1) # New input
+    race_calc = demo_col1.selectbox("Race/Ethnicity", ['Non-Hispanic Black', 'Other'], index=1)
 
     weight_calc = demo_col2.number_input("Weight (kg)", 30, 150, 55)
-    height_calc = demo_col2.number_input("Height (cm)", 100, 220, 175) # New input
-    smoking_calc = demo_col2.checkbox("Current Smoker", value=True) # New input
+    height_calc = demo_col2.number_input("Height (cm)", 100, 220, 175)
+    smoking_calc = demo_col2.checkbox("Current Smoker", value=True) # Used for Comorbidity Load
 
-    inr_calc = demo_col3.number_input("INR (if applicable)", 0.5, 10.0, 4.1, format="%.2f")
-    uncontrolled_bp = demo_col3.checkbox("Uncontrolled BP (Systolic > 140)", value=True)
+    baseline_creat = demo_col3.number_input("Baseline Creatinine (mg/dL)", 0.5, 5.0, 0.9, format="%.1f") 
+    uncontrolled_bp = demo_col3.checkbox("Uncontrolled BP (Systolic > 140)", value=True) # Used for Comorbidity Load
     
     st.markdown("---")
     
@@ -260,15 +287,17 @@ elif menu == "Risk Calculator":
     
     # Column 1: Bleeding & GI Factors
     st.markdown("#### 🩸 Bleeding & GI Factors")
+    prior_stroke = input_col1.checkbox("History of Stroke/TIA", value=True) # Used for Comorbidity Load
     on_anticoag = input_col1.checkbox("Anticoagulant Use", value=True)
     hist_gi_bleed = input_col1.checkbox("History of GI Bleed", value=True)
     on_antiplatelet = input_col1.checkbox("Antiplatelet Use (Aspirin/Plavix)", value=True)
     
-    # NEW INR-SPECIFIC INPUTS
+    # INR Specific Factors
+    inr_calc = input_col1.number_input("INR (if applicable)", 0.5, 10.0, 4.1, format="%.2f")
     alcohol_use = input_col1.checkbox("Heavy Alcohol Use", value=True)
     antibiotic_order = input_col1.checkbox("New Antibiotic Order", value=True)
-    dietary_change = input_col1.checkbox("Significant Dietary Change", value=False)
-    liver_disease = input_col1.checkbox("History of Liver Disease", value=False)
+    dietary_change = input_col1.checkbox("Significant Dietary Change (Vit K)", value=False)
+    liver_disease = input_col1.checkbox("History of Liver Disease", value=True) # Used for Comorbidity Load
 
 
     # Column 2: Diabetes & Renal Factors
@@ -277,29 +306,37 @@ elif menu == "Risk Calculator":
     high_hba1c = input_col2.checkbox("HbA1c > 9.0% (Poor DM Control)", value=True)
     neuropathy_history = input_col2.checkbox("History of Neuropathy/Ulcer", value=False)
     impaired_renal = input_col2.checkbox("Impaired Renal Status", value=True)
+    recent_dka = input_col2.checkbox("Recent DKA/HHS Admission", value=True) # Used for Comorbidity Load
 
 
     # Column 3: Cardiovascular & Cancer Factors
     st.markdown("#### ❤️ Cardio & Other Risks")
     on_acei_arb = input_col3.checkbox("ACEi/ARB Therapy", value=False)
     on_diuretic = input_col3.checkbox("Diuretic Use", value=False)
-    active_chemo = input_col3.checkbox("Active Chemotherapy", value=False)
+    active_chemo = input_col3.checkbox("Active Chemotherapy", value=True) # Used for Comorbidity Load
+    contrast_exposure = input_col3.checkbox("Recent Contrast Dye Exposure", value=False)
+
 
     # --- CALCULATIONS ---
-    # Passing new demographic factors to the calculation functions
-    bleeding_risk = calculate_bleeding_risk(age_calc, inr_calc, on_anticoag, hist_gi_bleed, uncontrolled_bp, on_antiplatelet, gender_calc, weight_calc, smoking_calc, alcohol_use, antibiotic_order, dietary_change, liver_disease)
-    hypoglycemia_risk = calculate_hypoglycemia_risk(on_insulin, impaired_renal, high_hba1c, neuropathy_history, gender_calc, weight_calc)
-    aki_risk = calculate_aki_risk(age_calc, on_diuretic, on_acei_arb, uncontrolled_bp, active_chemo, gender_calc, weight_calc, race_calc)
+    # 1. Calculate the three ADE risks
+    bleeding_risk = calculate_bleeding_risk(age_calc, inr_calc, on_anticoag, hist_gi_bleed, uncontrolled_bp, on_antiplatelet, gender_calc, weight_calc, smoking_calc, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke)
+    hypoglycemia_risk = calculate_hypoglycemia_risk(on_insulin, impaired_renal, high_hba1c, neuropathy_history, gender_calc, weight_calc, recent_dka)
+    aki_risk = calculate_aki_risk(age_calc, on_diuretic, on_acei_arb, uncontrolled_bp, active_chemo, gender_calc, weight_calc, race_calc, baseline_creat, contrast_exposure)
+    
+    # 2. Calculate the Comorbidity Load Score
+    comorbidity_load = calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_disease, smoking_calc, uncontrolled_bp)
+
 
     st.markdown("---")
     
     # --- OUTPUTS ---
-    output_col1, output_col2, output_col3 = st.columns(3)
+    output_col1, output_col2, output_col3, output_col4 = st.columns(4) # Split into 4 columns
     output_col1.metric("Bleeding Risk", f"{bleeding_risk}%", "CRITICAL ALERT")
-    output_col2.metric("Hypoglycemia Risk", f"{hypoglycemia_risk}%", "HIGH ALERT")
-    output_col3.metric("AKI Risk (Renal)", f"{aki_risk}%", "MED ALERT")
-    
-    
+    output_col2.metric("Hypoglycemia Risk", f"{hypoglycemia_risk}%", "CRITICAL ALERT")
+    output_col3.metric("AKI Risk (Renal)", f"{aki_risk}%", "HIGH ALERT")
+    output_col4.metric("Comorbidity Load", f"{comorbidity_load}%", "HIGH ALERT") # The New Metric!
+
+
     if bleeding_risk >= 70 or hypoglycemia_risk >= 70 or aki_risk >= 70:
         st.error("🚨 HIGH RISK ALERT: Check specific patient risks.")
     else:
@@ -307,7 +344,7 @@ elif menu == "Risk Calculator":
 
 
 # ---------------------------------------------------
-# PAGE 2 – CSV Upload (Bulk Analysis)
+# PAGE 2 – CSV Upload (Bulk Analysis - UNMODIFIED)
 # ---------------------------------------------------
 elif menu == "CSV Upload":
     st.subheader("Bulk Patient Risk Analysis")
@@ -325,7 +362,7 @@ elif menu == "CSV Upload":
 
 
 # ---------------------------------------------------
-# PAGE 3 – Medication Checker
+# PAGE 3 – Medication Checker (UNMODIFIED)
 # ---------------------------------------------------
 elif menu == "Medication Checker":
     st.subheader("Drug-Drug Interaction Checker")
@@ -345,7 +382,7 @@ elif menu == "Medication Checker":
 
 
 # ---------------------------------------------------
-# PAGE 4 – Chatbot
+# PAGE 4 – Chatbot (UNMODIFIED)
 # ---------------------------------------------------
 elif menu == "Chatbot":
     st.subheader("Clinical Information Chatbot")
