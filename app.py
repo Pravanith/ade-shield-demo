@@ -23,8 +23,8 @@ def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplat
     
     # Chronic / Management / Demographics Factors
     score += 10 if age > 70 else 0
-    score += 10 if high_bp else 0
-    score += 10 if smoking else 0
+    score += 10 if high_bp else 0 # Checked by Uncontrolled BP checkbox
+    score += 10 if smoking else 0 # Checked by Current Smoker checkbox
     score += 5 if gender == 'Female' else 0
     score += 15 if weight > 120 or weight < 50 else 0
     score += 15 if prior_stroke else 0 
@@ -56,7 +56,7 @@ def calculate_aki_risk(age, diuretic_use, acei_arb_use, high_bp, active_chemo, g
     
     # Chronic / Management / Demographics Factors
     score += 20 if age > 75 else 0
-    score += 10 if high_bp else 0
+    score += 10 if high_bp else 0 # Checked by Uncontrolled BP checkbox
     score += 20 if active_chemo else 0
     score += 15 if race == 'Non-Hispanic Black' else 0
     score += 30 if baseline_creat > 1.5 else 0 
@@ -77,7 +77,7 @@ def calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_dis
 
 
 # -----------------------------
-# SIMPLE CHATBOT & INTERACTIONS
+# SIMPLE CHATBOT & INTERACTIONS (UNMODIFIED)
 # -----------------------------
 def chatbot_response(text):
     text = text.lower()
@@ -137,7 +137,7 @@ with st.sidebar:
     )
 
 # ---------------------------------------------------
-# PAGE 0 – LIVE DASHBOARD 
+# PAGE 0 – LIVE DASHBOARD (UNMODIFIED)
 # ---------------------------------------------------
 if menu == "Live Dashboard":
     
@@ -145,9 +145,9 @@ if menu == "Live Dashboard":
 
     col_metrics = st.columns(4)
     col_metrics[0].metric("Bleeding Risk", "60%", "MED")
-    col_metrics[1].metric("Hypoglycemia Risk (High Alert)", "92%", "CRITICAL")
-    col_metrics[2].metric("AKI Risk (High Alert)", "80%", "HIGH")
-    col_metrics[3].metric("Clinical Fragility Index", "75%", "HIGH") # The new Comorbidity Load metric
+    col_metrics[1].metric("Hypoglycemia Risk", "92%", "CRITICAL")
+    col_metrics[2].metric("AKI Risk (Renal)", "80%", "HIGH")
+    col_metrics[3].metric("Clinical Fragility Index", "75%", "HIGH")
 
     st.markdown("---")
     
@@ -270,28 +270,30 @@ elif menu == "Risk Calculator":
     gender_calc = demo_col1.selectbox("Gender", ['Male', 'Female'], index=1)
     race_calc = demo_col1.selectbox("Race/Ethnicity", ['Non-Hispanic Black', 'Other'], index=1)
 
-    # Column 2: Vitals & Key Labs (Weight, Height, INR, Smoking)
+    # Column 2: Vitals & Key Labs 
     weight_calc = demo_col2.number_input("Weight (kg)", 30, 150, 55)
     height_calc = demo_col2.number_input("Height (cm)", 100, 220, 175)
     inr_calc = demo_col2.number_input("INR (if applicable)", 0.5, 10.0, 4.1, format="%.2f")
-    smoking_calc = demo_col2.checkbox("Current Smoker", value=True) 
 
-    # Column 3: Baseline Risks (Creatinine, BP)
+    # Column 3: Baseline Risks (Creatinine)
     baseline_creat = demo_col3.number_input("Baseline Creatinine (mg/dL)", 0.5, 5.0, 0.9, format="%.1f") 
-    uncontrolled_bp = demo_col3.checkbox("Uncontrolled BP (Systolic > 140)", value=True) 
     
     st.markdown("---")
     
     # --- ACUTE & CHRONIC INPUTS ---
     input_col1, input_col2, input_col3 = st.columns(3)
     
-    # Column 1: Bleeding & GI Factors (All lifestyle/acute INR factors)
+    # Column 1: Bleeding & GI Factors (Consolidated)
     st.markdown("#### 🩸 Bleeding & GI Factors")
     prior_stroke = input_col1.checkbox("History of Stroke/TIA", value=True) 
-    on_anticoag = input_col1.checkbox("Anticoagulant Use", value=True)
     hist_gi_bleed = input_col1.checkbox("History of GI Bleed", value=True)
+    on_anticoag = input_col1.checkbox("Anticoagulant Use", value=True)
     on_antiplatelet = input_col1.checkbox("Antiplatelet Use (Aspirin/Plavix)", value=True)
     
+    # NEW Lifestyle Factors (Moved from top demographics)
+    uncontrolled_bp = input_col1.checkbox("Uncontrolled BP (Systolic > 140)", value=True) # MOVED HERE
+    smoking_calc = input_col1.checkbox("Current Smoker", value=True) # MOVED HERE
+
     # INR Specific Factors (consolidated under the Bleeding column)
     alcohol_use = input_col1.checkbox("Heavy Alcohol Use", value=True)
     antibiotic_order = input_col1.checkbox("New Antibiotic Order", value=True)
