@@ -306,4 +306,89 @@ elif menu == "Risk Calculator":
     on_insulin = input_col2.checkbox("Insulin/High-Risk DM Meds", value=True)
     high_hba1c = input_col2.checkbox("HbA1c > 9.0% (Poor DM Control)", value=True)
     neuropathy_history = input_col2.checkbox("History of Neuropathy/Ulcer", value=False)
-    impaired_renal = input_col2.checkbox("Impaired Renal Status", value
+    impaired_renal = input_col2.checkbox("Impaired Renal Status", value=True)
+    recent_dka = input_col2.checkbox("Recent DKA/HHS Admission", value=True)
+
+
+    # Column 3: Cardiovascular & Cancer Factors (Unmodified)
+    st.markdown("#### ❤️ Cardio & Other Risks")
+    on_acei_arb = input_col3.checkbox("ACEi/ARB Therapy", value=False)
+    on_diuretic = input_col3.checkbox("Diuretic Use", value=False)
+    active_chemo = input_col3.checkbox("Active Chemotherapy", value=True)
+    contrast_exposure = input_col3.checkbox("Recent Contrast Dye Exposure", value=False)
+
+
+    # --- CALCULATIONS ---
+    # Passing new demographic factors to the calculation functions
+    bleeding_risk = calculate_bleeding_risk(age_calc, inr_calc, on_anticoag, hist_gi_bleed, uncontrolled_bp, on_antiplatelet, gender_calc, weight_calc, smoking_calc, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke)
+    hypoglycemia_risk = calculate_hypoglycemia_risk(on_insulin, impaired_renal, high_hba1c, neuropathy_history, gender_calc, weight_calc, recent_dka)
+    aki_risk = calculate_aki_risk(age_calc, on_diuretic, on_acei_arb, uncontrolled_bp, active_chemo, gender_calc, weight_calc, race_calc, baseline_creat, contrast_exposure)
+    comorbidity_load = calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_disease, smoking_calc, uncontrolled_bp)
+
+
+    st.markdown("---")
+    
+    # --- OUTPUTS ---
+    output_col1, output_col2, output_col3, output_col4 = st.columns(4)
+    output_col1.metric("Bleeding Risk", f"{bleeding_risk}%", "CRITICAL ALERT")
+    output_col2.metric("Hypoglycemia Risk", f"{hypoglycemia_risk}%", "CRITICAL ALERT")
+    output_col3.metric("AKI Risk (Renal)", f"{aki_risk}%", "HIGH ALERT")
+    output_col4.metric("Clinical Fragility Index", f"{comorbidity_load}%", "CRITICAL ALERT")
+
+
+    if bleeding_risk >= 70 or hypoglycemia_risk >= 70 or aki_risk >= 70:
+        st.error("🚨 HIGH RISK ALERT: Check specific patient risks.")
+    else:
+        st.success("Patient risk is manageable. Monitoring is sufficient.")
+
+
+# ---------------------------------------------------
+# PAGE 2 – CSV Upload (Bulk Analysis - UNMODIFIED)
+# ---------------------------------------------------
+elif menu == "CSV Upload":
+    st.subheader("Bulk Patient Risk Analysis")
+
+    st.markdown("Upload a CSV file with columns for all relevant factors.")
+    st.info("NOTE: CSV must include all factor flags (e.g., `age`, `inr`, `gender`, `weight`, `on_antiplatelet`, `high_hba1c`, `active_chemo`, etc. as 1=Yes, 0=No).")
+    
+    uploaded = st.file_uploader("Upload CSV File", type="csv")
+
+    if uploaded:
+        df = pd.read_csv(uploaded)
+
+        st.warning("Bulk analysis is highly complex due to many required columns.")
+        st.dataframe(df.head())
+
+
+# ---------------------------------------------------
+# PAGE 3 – Medication Checker (UNMODIFIED)
+# ---------------------------------------------------
+elif menu == "Medication Checker":
+    st.subheader("Drug-Drug Interaction Checker")
+    st.caption("Demo: Tests interactions against a small, hard-coded database.")
+    
+    d1 = st.text_input("Drug 1 (e.g., Warfarin)")
+    d2 = st.text_input("Drug 2 (e.g., Amiodarone)")
+    
+    if d1 and d2:
+        interaction = check_interaction(d1, d2)
+        if "Major" in interaction:
+            st.error(f"Interaction Result: {interaction}")
+        elif "Moderate" in interaction:
+            st.warning(f"Interaction Result: {interaction}")
+        else:
+            st.success(f"Interaction Result: {interaction}")
+
+
+# ---------------------------------------------------
+# PAGE 4 – Chatbot (UNMODIFIED)
+# ---------------------------------------------------
+elif menu == "Chatbot":
+    st.subheader("Clinical Information Chatbot")
+    st.caption("Ask quick questions about the data and model logic (e.g., 'What about bleeding risk?').")
+    
+    user_input = st.text_input("Ask a question:")
+    
+    if user_input:
+        response = chatbot_response(user_input)
+        st.info(response)
