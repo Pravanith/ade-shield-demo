@@ -286,29 +286,36 @@ elif menu == "Risk Calculator":
     # Column 3: Baseline Risks (Creatinine)
     baseline_creat = demo_col3.number_input("Baseline Creatinine (mg/dL)", 0.5, 5.0, 0.9, format="%.1f") 
     
-    # New ICD Input
+    # NEW ICD Input Field
     icd_input = st.text_input("ICD-10 Diagnosis Codes (e.g., I63.9, K74.6)", value="I63.9, K74.6")
-    icd_codes = [code.strip() for code in icd_input.split(',') if code.strip()] # Process input string
+    icd_codes = [code.strip().upper() for code in icd_input.split(',') if code.strip()] # Process and capitalize input string
 
     st.markdown("---")
     
     # --- ACUTE & CHRONIC INPUTS (CHECKBOXES MOVED HERE) ---
     input_col1, input_col2, input_col3 = st.columns(3)
     
+    # --- Check ICD Logic against codes ---
+    has_stroke = any(code.startswith('I63') for code in icd_codes)
+    has_liver_disease = any(code.startswith('K74') for code in icd_codes)
+    
     # Column 1: Bleeding & GI Factors (Consolidated)
     st.markdown("#### 🩸 Bleeding & GI Factors")
-    prior_stroke_check = input_col1.checkbox("History of Stroke/TIA (Calculated via ICD-10)", disabled=True) 
-    hist_gi_bleed = input_col1.checkbox("History of GI Bleed", value=True)
+    # Display the ICD status for clarity
+    input_col1.markdown(f"**History of Stroke/TIA:** {'✅' if has_stroke else '❌'}")
+    input_col1.markdown(f"**History of Liver Disease:** {'✅' if has_liver_disease else '❌'}")
+    
+    # Regular Checkboxes
     on_anticoag = input_col1.checkbox("Anticoagulant Use", value=True)
+    hist_gi_bleed = input_col1.checkbox("History of GI Bleed", value=True)
     on_antiplatelet = input_col1.checkbox("Antiplatelet Use (Aspirin/Plavix)", value=True)
     
     # Lifestyle/Acute Factors (consolidated under Bleeding)
-    uncontrolled_bp = input_col1.checkbox("Uncontrolled BP (Systolic > 140)", value=True) # MOVED HERE
-    smoking_calc = input_col1.checkbox("Current Smoker", value=True) # MOVED HERE
+    uncontrolled_bp = input_col1.checkbox("Uncontrolled BP (Systolic > 140)", value=True) 
+    smoking_calc = input_col1.checkbox("Current Smoker", value=True) 
     alcohol_use = input_col1.checkbox("Heavy Alcohol Use", value=True)
     antibiotic_order = input_col1.checkbox("New Antibiotic Order", value=True)
     dietary_change = input_col1.checkbox("Significant Dietary Change (Vit K)", value=False)
-    liver_disease_check = input_col1.checkbox("History of Liver Disease (Calculated via ICD-10)", disabled=True)
 
 
     # Column 2: Diabetes & Renal Factors (Unmodified)
@@ -329,15 +336,7 @@ elif menu == "Risk Calculator":
 
 
     # --- CALCULATIONS ---
-    # Convert ICD-10 codes for use in risk functions
-    has_stroke = any(code.startswith('I63') for code in icd_codes)
-    has_liver_disease = any(code.startswith('K74') for code in icd_codes)
-    
-    # Ensure the disabled checkboxes reflect the ICD logic
-    prior_stroke_check = has_stroke
-    liver_disease_check = has_liver_disease
-    
-    # Passing new demographic factors to the calculation functions
+    # Final function calls using the processed boolean variables (has_stroke, has_liver_disease)
     bleeding_risk = calculate_bleeding_risk(age_calc, inr_calc, on_anticoag, hist_gi_bleed, uncontrolled_bp, on_antiplatelet, gender_calc, weight_calc, smoking_calc, alcohol_use, antibiotic_order, dietary_change, has_liver_disease, has_stroke)
     hypoglycemia_risk = calculate_hypoglycemia_risk(on_insulin, impaired_renal, high_hba1c, neuropathy_history, gender_calc, weight_calc, recent_dka)
     aki_risk = calculate_aki_risk(age_calc, on_diuretic, on_acei_arb, uncontrolled_bp, active_chemo, gender_calc, weight_calc, race_calc, baseline_creat, contrast_exposure)
@@ -352,6 +351,7 @@ elif menu == "Risk Calculator":
     output_col2.metric("Hypoglycemia Risk", f"{hypoglycemia_risk}%", "CRITICAL ALERT")
     output_col3.metric("AKI Risk (Renal)", f"{aki_risk}%", "HIGH ALERT")
     output_col4.metric("Clinical Fragility Index", f"{comorbidity_load}%", "CRITICAL ALERT")
+
 
     # 2. Determine and Display Specific Alert
     max_risk = max(bleeding_risk, hypoglycemia_risk, aki_risk)
