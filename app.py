@@ -137,6 +137,27 @@ def chatbot_response(text):
         "diabetes": "Diabetes requires strict blood sugar monitoring; poor control (high HbA1c) increases hypoglycemia risk.",
         "hypertension": "Uncontrolled hypertension increases cardiovascular risk and stresses kidney function.",
         "cancer": "Active chemotherapy treatment increases the risk of AKI and immune suppression.",
+        "ibuprofen": "Ibuprofen (NSAID) poses a high risk of bleeding with anticoagulants and AKI when combined with blood pressure drugs.",
+        "lisinopril": "Lisinopril (an ACE inhibitor) can cause severe hyperkalemia (high potassium) when combined with certain diuretics.",
+        "statin": "Statins are critical for cardiovascular risk reduction but require monitoring for muscle pain (myopathy) and liver toxicity.",
+        "beta-blocker": "Beta-blockers treat hypertension and heart conditions but can severely mask the warning signs of hypoglycemia.",
+        "calcium channel blocker": "Calcium channel blockers (CCBs) lower blood pressure but carry a high risk of interaction when combined with strong antibiotics.",
+        "potassium": "Potassium levels must be monitored closely when using ACE inhibitors or diuretics to prevent dangerous hyperkalemia.",
+        "creatinine": "Creatinine is a key indicator of kidney function. A high level often requires immediate drug dose reduction.",
+        "liver": "Liver function is essential for drug metabolism; poor liver status can increase the risk of drug toxicity and bleeding.",
+        "falls": "Medications that affect the central nervous system (CNS) increase the risk of falls, a primary cause of bleeding events in the elderly.",
+        "triple whammy": "The 'Triple Whammy' refers to the dangerous combination of an ACE inhibitor, a Diuretic, and an NSAID, which severely increases AKI risk.",
+        
+        # --- Core ADE Risks ---
+        "warfarin": "Warfarin interacts with several medications and increases bleeding risk.",
+        "amiodarone": "Amiodarone can elevate INR when combined with Warfarin.",
+        "aki": "Acute Kidney Injury risk is elevated by certain blood pressure medications (ACEi/ARBs) and diuretics.",
+        "metformin": "Metformin is a first-line diabetes drug but is strictly avoided in severe kidney impairment.",
+        
+        # --- Disease/Class Knowledge ---
+        "diabetes": "Diabetes requires strict blood sugar monitoring; poor control (high HbA1c) increases hypoglycemia risk.",
+        "hypertension": "Uncontrolled hypertension increases cardiovascular risk and stresses kidney function.",
+        "cancer": "Active chemotherapy treatment increases the risk of AKI and immune suppression.",
     }
     for key in responses:
         if key in text:
