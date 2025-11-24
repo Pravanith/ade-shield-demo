@@ -303,6 +303,76 @@ elif menu == "Risk Calculator":
     hypoglycemic_risk = calculate_hypoglycemic_risk(on_insulin, impaired_renal, high_hba1c, neuropathy_history, gender_calc, weight_calc, recent_dka)
     aki_risk = calculate_aki_risk(age_calc, on_diuretic, on_acei_arb, uncontrolled_bp, active_chemo, gender_calc, weight_calc, race_calc, baseline_creat, contrast_exposure)
     comorbidity_load = calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_disease, smoking_calc, uncontrolled_bp)
+def generate_detailed_alert(risk_type, inputs):
+    """Generates a detailed clinical alert message based on risk type and patient-specific factors."""
+
+    alert = ""
+
+    if risk_type == "Bleeding":
+        alert += "⚠️ **CRITICAL BLEEDING RISK** detected.\n\n"
+        alert += "Key drivers of risk:\n"
+
+        if inputs['inr'] > 3.5:
+            alert += f"- Very high INR ({inputs['inr']}), increasing risk of anticoagulation-related bleeding.\n"
+        if inputs['on_antiplatelet']:
+            alert += "- Dual platelet inhibition (Aspirin/Plavix).\n"
+        if inputs['hist_gi_bleed']:
+            alert += "- Prior GI bleeding history.\n"
+        if inputs['antibiotic_order']:
+            alert += "- Recent antibiotic order — several antibiotics elevate INR.\n"
+        if inputs['alcohol_use']:
+            alert += "- Heavy alcohol use (impairs metabolism of anticoagulants).\n"
+        if inputs['prior_stroke']:
+            alert += "- Prior stroke/TIA increases hemorrhagic risk.\n"
+        if inputs['liver_disease']:
+            alert += "- Liver disease reducing clotting factor synthesis.\n"
+
+        alert += "\n▶ **Immediate Action Suggested:** Recheck INR, review medications, assess for bleeding signs, and consider dose modification."
+
+    # ----------------------------------------------------------------------
+
+    elif risk_type == "Hypoglycemic":
+        alert += "⚠️ **CRITICAL HYPOGLYCEMIA RISK** detected.\n\n"
+        alert += "Key drivers of risk:\n"
+
+        if inputs['impaired_renal']:
+            alert += "- Impaired renal function slows insulin and sulfonylurea clearance.\n"
+        if inputs['high_hba1c']:
+            alert += "- Poor diabetes control (HbA1c > 9%) increases glucose variability.\n"
+        if inputs['recent_dka']:
+            alert += "- Recent DKA/HHS episode indicating unstable diabetes control.\n"
+        if inputs['weight'] < 60:
+            alert += "- Low body weight increases medication sensitivity.\n"
+        if inputs['high_hba1c'] and not inputs['impaired_renal']:
+            alert += "- Rapid improvement in glucose can trigger hypoglycemia.\n"
+
+        alert += "\n▶ **Immediate Action Suggested:** Review insulin/sulfonylurea dose, increase glucose monitoring, confirm renal panel."
+
+    # ----------------------------------------------------------------------
+
+    elif risk_type == "AKI":
+        alert += "⚠️ **HIGH RISK OF ACUTE KIDNEY INJURY (AKI)** detected.\n\n"
+        alert += "Key drivers of risk:\n"
+
+        if inputs['baseline_creat'] > 1.5:
+            alert += f"- Elevated baseline creatinine ({inputs['baseline_creat']} mg/dL).\n"
+        if inputs['active_chemo']:
+            alert += "- Active chemotherapy — multiple nephrotoxic agents likely.\n"
+        if inputs['on_acei_arb']:
+            alert += "- ACEi/ARB therapy reduces glomerular filtration under stress.\n"
+        if inputs['on_diuretic']:
+            alert += "- Diuretics increasing dehydration and prerenal AKI risk.\n"
+        if inputs['contrast_exposure']:
+            alert += "- Recent contrast dye exposure.\n"
+
+        alert += "\n▶ **Immediate Action Suggested:** Recheck BMP, hydrate, hold nephrotoxic meds if applicable, and monitor urine output."
+
+    # ----------------------------------------------------------------------
+
+    else:
+        alert = "⚠️ High clinical risk detected. Review patient parameters for further action."
+
+    return alert
 
 
     st.markdown("---")
