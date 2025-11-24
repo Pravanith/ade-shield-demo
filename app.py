@@ -14,29 +14,35 @@ if 'patient_loaded' not in st.session_state:
     st.session_state['patient_info'] = {'age': 70, 'gender': 'Male', 'weight': 75} # Default profile
 
 # -----------------------------
-# CORE MODELING LOGIC (FUNCTIONS)
+# CORE MODELING LOGIC (FUNCTIONS - FINAL STABLE VERSION)
 # -----------------------------
 
 def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplatelet_use, gender, weight, smoking, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke):
     """Predicts bleeding risk, factoring in underlying conditions and patient demographics."""
     score = 0
+    # Acute / Drug Factors
     score += 35 if anticoagulant else 0
     score += 40 if inr > 3.5 else 0
     score += 30 if gi_bleed else 0
     score += 15 if antiplatelet_use else 0
+    
+    # New Acute/Lifestyle Factors
     score += 25 if antibiotic_order else 0 
     score += 15 if alcohol_use else 0     
-    score += 20 if liver_disease else 0   
+    score += 20 if liver_disease else 0   # RESTORED: Uses simple boolean input
     score += 10 if dietary_change else 0  
+    
+    # Chronic / Management / Demographics Factors
     score += 10 if age > 70 else 0
     score += 10 if high_bp else 0
     score += 10 if smoking else 0
     score += 5 if gender == 'Female' else 0
     score += 15 if weight > 120 or weight < 50 else 0
-    score += 15 if prior_stroke else 0 
+    score += 15 if prior_stroke else 0 # RESTORED: Uses simple boolean input
+    
     return min(score, 100)
 
-def calculate_hypoglycemic_risk(insulin_use, renal_status, high_hba1c, neuropathy_history, gender, weight, recent_dka):
+def calculate_hypoglycemia_risk(insulin_use, renal_status, high_hba1c, neuropathy_history, gender, weight, recent_dka):
     """Predicts low blood sugar risk, factoring in diabetes control status and severe events."""
     score = 0
     score += 30 if insulin_use else 0
@@ -71,8 +77,9 @@ def calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_dis
     load += 10 if high_bp else 0
     return min(load, 100)
 
+
 # -----------------------------
-# SIMPLE CHATBOT & INTERACTIONS
+# SIMPLE CHATBOT & INTERACTIONS (UNMODIFIED)
 # -----------------------------
 def chatbot_response(text):
     text = text.lower()
@@ -227,7 +234,7 @@ if menu == "Live Dashboard":
 
 
 # ---------------------------------------------------
-# PAGE 1 – Risk Calculator (Input/Calculation)
+# PAGE 1 – Risk Calculator (Manual Input)
 # ---------------------------------------------------
 elif menu == "Risk Calculator":
     st.subheader("Manual Multiple-Risk Calculator (High-Detail)")
@@ -236,6 +243,7 @@ elif menu == "Risk Calculator":
     # --- DEMOGRAPHIC & CORE INPUTS ---
     st.markdown("#### 👤 Patient Demographics & Core Factors")
     
+    # CORRECTED INPUT LAYOUT
     demo_col1, demo_col2, demo_col3 = st.columns(3)
     
     # Column 1: Core Identity
@@ -251,7 +259,6 @@ elif menu == "Risk Calculator":
     # Column 3: Baseline Risks (Creatinine)
     baseline_creat = demo_col3.number_input("Baseline Creatinine (mg/dL)", 0.5, 5.0, 0.9, format="%.1f") 
     
-    # ICD Input Field is REMOVED
     st.markdown("---")
     
     # --- ACUTE & CHRONIC INPUTS (CHECKBOXES MOVED HERE) ---
@@ -291,7 +298,7 @@ elif menu == "Risk Calculator":
 
 
     # --- CALCULATIONS ---
-    # Calculate all scores based on current inputs
+    # Passing new demographic factors to the calculation functions
     bleeding_risk = calculate_bleeding_risk(age_calc, inr_calc, on_anticoag, hist_gi_bleed, uncontrolled_bp, on_antiplatelet, gender_calc, weight_calc, smoking_calc, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke)
     hypoglycemic_risk = calculate_hypoglycemic_risk(on_insulin, impaired_renal, high_hba1c, neuropathy_history, gender_calc, weight_calc, recent_dka)
     aki_risk = calculate_aki_risk(age_calc, on_diuretic, on_acei_arb, uncontrolled_bp, active_chemo, gender_calc, weight_calc, race_calc, baseline_creat, contrast_exposure)
@@ -303,7 +310,7 @@ elif menu == "Risk Calculator":
     # --- OUTPUTS ---
     output_col1, output_col2, output_col3, output_col4 = st.columns(4)
     output_col1.metric("Bleeding Risk", f"{bleeding_risk}%", "CRITICAL ALERT")
-    output_col2.metric("Hypoglycemia Risk", f"{hypoglycemic_risk}%", "CRITICAL ALERT")
+    output_col2.metric("Hypoglycemic Risk", f"{hypoglycemic_risk}%", "CRITICAL ALERT")
     output_col3.metric("AKI Risk (Renal)", f"{aki_risk}%", "HIGH ALERT")
     output_col4.metric("Clinical Fragility Index", f"{comorbidity_load}%", "CRITICAL ALERT")
 
@@ -312,7 +319,7 @@ elif menu == "Risk Calculator":
     max_risk = max(bleeding_risk, hypoglycemic_risk, aki_risk)
     
     if max_risk >= 70:
-        # Gather all inputs into a dictionary for easy passing to the alert function (omitted for brevity)
+        # Gather all inputs into a dictionary for easy passing to the alert function
         inputs = {
             'inr': inr_calc, 'antibiotic_order': antibiotic_order, 'on_antiplatelet': on_antiplatelet,
             'alcohol_use': alcohol_use, 'hist_gi_bleed': hist_gi_bleed, 'prior_stroke': prior_stroke,
@@ -329,13 +336,13 @@ elif menu == "Risk Calculator":
         elif aki_risk == max_risk:
             risk_type = "AKI"
         else:
-            risk_type = "General" 
-            
+            risk_type = "General" # Fallback for equality cases or if logic missed a path
+
         alert_message = generate_detailed_alert(risk_type, inputs)
 
         st.error(alert_message)
         
-        # --- FIX: THE MISSING BUTTON LOGIC ---
+        # --- THE LOAD BUTTON LOGIC ---
         if st.button("Load Patient to Dashboard"):
             # Save the calculated scores and core demographics
             st.session_state['patient_loaded'] = True
@@ -345,9 +352,9 @@ elif menu == "Risk Calculator":
             st.session_state['fragility_index'] = comorbidity_load
             st.session_state['patient_info'] = {'age': age_calc, 'gender': gender_calc, 'weight': weight_calc}
             st.toast("Patient data loaded! Switch to Live Dashboard.")
-
     else:
         st.success("Patient risk is manageable. Monitoring is sufficient.")
+
 
 # ---------------------------------------------------
 # PAGE 2 – CSV Upload (Bulk Analysis)
