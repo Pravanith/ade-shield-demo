@@ -353,13 +353,13 @@ elif menu == "Risk Calculator":
     # --- OUTPUTS ---
     output_col1, output_col2, output_col3, output_col4 = st.columns(4)
     output_col1.metric("Bleeding Risk", f"{bleeding_risk}%", "CRITICAL ALERT")
-    output_col2.metric("Hypoglycemic Risk", f"{hypoglycemic_risk}%", "CRITICAL ALERT")
+    output_col2.metric("Hypoglycemia Risk", f"{hypoglycemic_risk}%", "CRITICAL ALERT")
     output_col3.metric("AKI Risk (Renal)", f"{aki_risk}%", "HIGH ALERT")
     output_col4.metric("Clinical Fragility Index", f"{comorbidity_load}%", "CRITICAL ALERT")
 
 
     # 2. Determine and Display Specific Alert
-    max_risk = max(bleeding_risk, hypoglycemia_risk, aki_risk)
+    max_risk = max(bleeding_risk, hypoglycemic_risk, aki_risk)
     
     if max_risk >= 70:
         # Gather all inputs into a dictionary for easy passing to the alert function
@@ -374,23 +374,23 @@ elif menu == "Risk Calculator":
         # Determine the highest risk type for generating the detailed alert
         if bleeding_risk == max_risk:
             risk_type = "Bleeding"
-        elif hypoglycemia_risk == max_risk:
+        elif hypoglycemic_risk == max_risk:
             risk_type = "Hypoglycemic"
         elif aki_risk == max_risk:
             risk_type = "AKI"
         else:
-            risk_type = "General" # Fallback for equality cases or if logic missed a path
+            risk_type = "General" 
 
         alert_message = generate_detailed_alert(risk_type, inputs)
 
         st.error(alert_message)
         
-        # --- THE LOAD BUTTON LOGIC ---
+        # --- THE LOAD BUTTON LOGIC IS HERE ---
         if st.button("Load Patient to Dashboard"):
             # Save the calculated scores and core demographics
             st.session_state['patient_loaded'] = True
             st.session_state['bleeding_risk'] = bleeding_risk
-            st.session_state['hypoglycemic_risk'] = hypoglycemia_risk
+            st.session_state['hypoglycemic_risk'] = hypoglycemic_risk
             st.session_state['aki_risk'] = aki_risk
             st.session_state['fragility_index'] = comorbidity_load
             st.session_state['patient_info'] = {'age': age_calc, 'gender': gender_calc, 'weight': weight_calc}
