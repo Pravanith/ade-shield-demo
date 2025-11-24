@@ -3,10 +3,10 @@ import pandas as pd
 import altair as alt
 
 # -----------------------------
-# CORE MODELING LOGIC (FUNCTIONS - FINAL COMPREHENSIVE SET)
+# CORE MODELING LOGIC (FUNCTIONS)
 # -----------------------------
 
-def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplatelet_use, gender, weight, smoking, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke, polypharmacy, cognitive_impairment):
+def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplatelet_use, gender, weight, smoking, alcohol_use, antibiotic_order, dietary_change, liver_disease, prior_stroke):
     """Predicts bleeding risk, factoring in underlying conditions and patient demographics."""
     score = 0
     # Acute / Drug Factors
@@ -21,54 +21,41 @@ def calculate_bleeding_risk(age, inr, anticoagulant, gi_bleed, high_bp, antiplat
     score += 20 if liver_disease else 0   
     score += 10 if dietary_change else 0  
     
-    # Chronic / Management / Demographics Factors (Fragility)
+    # Chronic / Management / Demographics Factors
     score += 10 if age > 70 else 0
     score += 10 if high_bp else 0
     score += 10 if smoking else 0
     score += 5 if gender == 'Female' else 0
     score += 15 if weight > 120 or weight < 50 else 0
     score += 15 if prior_stroke else 0 
-    score += 20 if polypharmacy > 8 else 0  # High risk based on number of meds
-    score += 15 if cognitive_impairment else 0 # High risk of falls/non-adherence
     
     return min(score, 100)
 
-def calculate_hypoglycemia_risk(insulin_use, renal_status, high_hba1c, neuropathy_history, gender, weight, recent_dka, polypharmacy, cognitive_impairment):
+def calculate_hypoglycemia_risk(insulin_use, renal_status, high_hba1c, neuropathy_history, gender, weight, recent_dka):
     """Predicts low blood sugar risk, factoring in diabetes control status and severe events."""
     score = 0
-    # Acute / Drug Factors
     score += 30 if insulin_use else 0
     score += 45 if renal_status else 0
-    
-    # Chronic / Management / Demographics Factors (Fragility)
     score += 20 if high_hba1c else 0
     score += 10 if neuropathy_history else 0
     score += 10 if weight < 60 else 0
     score += 20 if recent_dka else 0 
-    score += 10 if polypharmacy > 8 else 0
-    score += 10 if cognitive_impairment else 0
-    
     return min(score, 100)
 
-def calculate_aki_risk(age, diuretic_use, acei_arb_use, high_bp, active_chemo, gender, weight, race, baseline_creat, contrast_exposure, respiratory_disease):
+def calculate_aki_risk(age, diuretic_use, acei_arb_use, high_bp, active_chemo, gender, weight, race, baseline_creat, contrast_exposure):
     """Predicts Acute Kidney Injury (AKI) risk from drug classes and co-existing conditions, including acute events."""
     score = 0
-    # Acute / Drug Factors
     score += 30 if diuretic_use else 0
     score += 40 if acei_arb_use else 0
     score += 25 if contrast_exposure else 0 
-    
-    # Chronic / Management / Demographics Factors (Fragility)
     score += 20 if age > 75 else 0
     score += 10 if high_bp else 0
     score += 20 if active_chemo else 0
     score += 15 if race == 'Non-Hispanic Black' else 0
     score += 30 if baseline_creat > 1.5 else 0 
-    score += 15 if respiratory_disease else 0 # Respiratory issues complicate fluid management and renal perfusion
-    
     return min(score, 100)
 
-def calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_disease, smoking, high_bp, respiratory_disease, cognitive_impairment):
+def calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_disease, smoking, high_bp):
     """Calculates a composite score representing the patient's overall disease burden and clinical fragility."""
     load = 0
     load += 25 if prior_stroke else 0
@@ -77,13 +64,11 @@ def calculate_comorbidity_load(prior_stroke, active_chemo, recent_dka, liver_dis
     load += 15 if liver_disease else 0
     load += 10 if smoking else 0
     load += 10 if high_bp else 0
-    load += 10 if respiratory_disease else 0
-    load += 10 if cognitive_impairment else 0
     return min(load, 100)
 
 
 # -----------------------------
-# SIMPLE CHATBOT & INTERACTIONS (UNMODIFIED)
+# SIMPLE CHATBOT & INTERACTIONS
 # -----------------------------
 def chatbot_response(text):
     text = text.lower()
@@ -143,7 +128,7 @@ with st.sidebar:
     )
 
 # ---------------------------------------------------
-# PAGE 0 – LIVE DASHBOARD (UNMODIFIED)
+# PAGE 0 – LIVE DASHBOARD 
 # ---------------------------------------------------
 if menu == "Live Dashboard":
     
@@ -151,7 +136,7 @@ if menu == "Live Dashboard":
 
     col_metrics = st.columns(4)
     col_metrics[0].metric("Bleeding Risk", "60%", "MED")
-    col_metrics[1].metric("Hypoglycemia Risk", "92%", "CRITICAL")
+    col_metrics[1].metric("Hypoglycemic Risk", "92%", "CRITICAL")
     col_metrics[2].metric("AKI Risk (Renal)", "80%", "HIGH")
     col_metrics[3].metric("Clinical Fragility Index", "75%", "HIGH")
 
@@ -341,7 +326,7 @@ elif menu == "Risk Calculator":
 
 
     # 2. Determine and Display Specific Alert
-    max_risk = max(bleeding_risk, hypoglycemic_risk, aki_risk)
+    max_risk = max(bleeding_risk, hypoglycemia_risk, aki_risk)
     
     if max_risk >= 70:
         if bleeding_risk == max_risk:
